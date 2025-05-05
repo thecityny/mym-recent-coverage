@@ -1,5 +1,4 @@
 const fs = require("fs");
-const fetch = require("node-fetch");
 const cheerio = require("cheerio");
 
 const THE_CITY_COVERAGE_URL = "https://www.thecity.nyc/category/campaign-2025/";
@@ -25,7 +24,7 @@ function testValidCoverageLinks(links, source) {
   }
 }
 
-const getTheCityLinks = async (outputPath = "src/the-city-links.js") => {
+const getTheCityLinks = async (outputPath = "the-city-links.js") => {
   try {
     const response = await fetch(THE_CITY_COVERAGE_URL);
     const body = await response.text();
@@ -41,10 +40,6 @@ const getTheCityLinks = async (outputPath = "src/the-city-links.js") => {
     });
 
     testValidCoverageLinks(links, "THE CITY");
-
-    fs.mkdirSync(outputPath.split("/").slice(0, -1).join("/"), {
-      recursive: true,
-    });
 
     fs.writeFile(outputPath, links, (err) => {
       // In case of a error throw err.
