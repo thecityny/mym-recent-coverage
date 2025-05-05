@@ -24,7 +24,7 @@ function testValidCoverageLinks(links, source) {
   }
 }
 
-const getTheCityLinks = async (outputPath = "the-city-links.js") => {
+const getTheCityLinks = async (outputPath = "./the-city-links.js") => {
   try {
     const response = await fetch(THE_CITY_COVERAGE_URL);
     const body = await response.text();
@@ -42,7 +42,7 @@ const getTheCityLinks = async (outputPath = "the-city-links.js") => {
     testValidCoverageLinks(links, "THE CITY");
 
     fs.writeFile(
-      "the-city-links.json",
+      "./the-city-links.json",
       JSON.stringify(links, null, 2),
       (err) => {
         // In case of a error throw err.
