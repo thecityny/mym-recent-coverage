@@ -19,7 +19,7 @@ jobs:
         run: |
           set -e
 
-          GOTHAMIST_API_URL="https://api-prod.gothamist.com/api/v2/pages/?type=news.ArticlePage&fields=listing_title,url&order=-publication_date&show_on_index_listing=true&limit=3&tag_slug=politics"
+          GOTHAMIST_API_URL="https://api-prod.gothamist.com/api/v2/pages/?type=news.ArticlePage&fields=title,url&order=-publication_date&show_on_index_listing=true&limit=3&tag_slug=politics"
           OUTPUT_PATH="gothamist-links.json"
 
           echo "📡 Fetching data from API..."
@@ -32,7 +32,7 @@ jobs:
           fi
 
           # Convert to array of {text, href}
-          LINKS=$(echo "$RESPONSE" | jq '[.items[] | {text: .listing_title, href: .url}]')
+          LINKS=$(echo "$RESPONSE" | jq '[.items[] | {text: .title, href: .url}]')
 
           # Validate: Exactly 3 links
           COUNT=$(echo "$LINKS" | jq 'length')
