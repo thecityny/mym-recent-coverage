@@ -23,16 +23,29 @@ jobs:
           OUTPUT_PATH="gothamist-links.json"
 
           echo "📡 Fetching data from API..."
+
+          # Fetch the raw response
           RESPONSE=$(curl -s "$GOTHAMIST_API_URL")
-          ITEMS=$(echo "$RESPONSE" | jq -r '.items')
+
+          # Log the raw response for debugging
+          echo "Raw API Response: $RESPONSE"
+
+          # Check if the response is valid JSON
+          if ! echo "$RESPONSE" | jq empty; then
+            echo "❌ Invalid JSON response from the API"
+            exit 1
+          fi
+
+          # Parse the response (accessing data.items)
+          ITEMS=$(echo "$RESPONSE" | jq -r '.data.items')
 
           if [ "$ITEMS" = "null" ]; then
-            echo "❌ API response does not contain an items array"
+            echo "❌ API response does not contain a 'data.items' array"
             exit 1
           fi
 
           # Convert to array of {text, href}
-          LINKS=$(echo "$RESPONSE" | jq '[.items[] | {text: .title, href: .url}]')
+          LINKS=$(echo "$RESPONSE" | jq '[.data.items[] | {text: .title, href: .url}]')
 
           # Validate: Exactly 3 links
           COUNT=$(echo "$LINKS" | jq 'length')
