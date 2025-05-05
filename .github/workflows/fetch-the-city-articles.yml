@@ -29,7 +29,7 @@ jobs:
       - name: Commit and push formatted JS file if changed
         if: success()
         run: |
-          if git diff --quiet the-city-links.js; then
+          if git diff --quiet ./the-city-links.js; then
             echo "No changes to commit.";
           else
             git config --global user.name "github-actions[bot]"
