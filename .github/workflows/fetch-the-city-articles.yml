@@ -27,9 +27,6 @@ jobs:
           # Fetch the raw HTML response
           RESPONSE=$(curl -s "$THECITY_URL")
 
-          # Log the raw response for debugging
-          echo "Raw HTML Response: $RESPONSE"
-
           # Parse the response using Node.js (cheerio)
           LINKS=$(node -e "
           const cheerio = require('cheerio');
