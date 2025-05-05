@@ -1,0 +1,107 @@
+name: Scrape The City Coverage
+
+on:
+  schedule:
+    - cron: "0 11 * * *" # 7am NYC
+    - cron: "0 17 * * *" # 1pm NYC
+    - cron: "0 23 * * *" # 7pm NYC
+  workflow_dispatch:
+
+jobs:
+  scrape-links:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          npm install node-fetch cheerio
+
+      - name: Scrape and write The City links to JSON
+        run: |
+          set -e
+
+          THE_CITY_COVERAGE_URL="https://www.thecity.nyc/category/campaign-2025/"
+          OUTPUT_PATH="the-city-links.json"
+
+          echo "📡 Scraping data from The City..."
+
+          # Web scrape using cheerio
+          node -e "
+            const fs = require('fs');
+            const fetch = require('node-fetch');
+            const cheerio = require('cheerio'); // Import cheerio
+
+            const THE_CITY_COVERAGE_URL = '${THE_CITY_COVERAGE_URL}';
+            const OUTPUT_PATH = '${OUTPUT_PATH}';
+
+            async function scrapeTheCity() {
+              try {
+                const response = await fetch(THE_CITY_COVERAGE_URL);
+                const body = await response.text();
+
+                // Load the HTML body using cheerio
+                const $ = cheerio.load(body);
+                let links = [];
+
+                // Scrape the links (limit to the first 3)
+                $(".entry-title a").each((i, elem) => {
+                  if (i < 3) {
+                    const text = $(elem).text().trim();
+                    const href = $(elem).attr("href");
+                    links.push({ text, href });
+                  }
+                });
+
+                // Ensure we have 3 links
+                if (links.length < 3) {
+                  throw new Error('Less than 3 links found on The City page');
+                }
+
+                // Validate links
+                links.forEach((link, i) => {
+                  if (!link.text || link.text.length < 5) {
+                    throw new Error('Link ' + (i + 1) + ' on The City page is missing text');
+                  }
+                  if (!link.href || link.href.length < 6) {
+                    throw new Error('Link ' + (i + 1) + ' on The City page is missing href');
+                  }
+                });
+
+                // Read the existing file to compare
+                let existingLinks = [];
+                if (fs.existsSync(OUTPUT_PATH)) {
+                  existingLinks = JSON.parse(fs.readFileSync(OUTPUT_PATH, 'utf8'));
+                }
+
+                // Only write/commit if content has changed
+                if (JSON.stringify(links) === JSON.stringify(existingLinks)) {
+                  console.log('✅ No changes to write');
+                  return;
+                }
+
+                // Write new links to the file
+                fs.writeFileSync(OUTPUT_PATH, JSON.stringify(links, null, 2));
+
+                console.log("✅ Wrote new links to $OUTPUT_PATH");
+
+              } catch (err) {
+                console.error('Scraping failed:', err);
+                process.exit(1);
+              }
+            }
+
+            scrapeTheCity();
+          "
+
+          # Commit changes to GitHub if needed
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add "$OUTPUT_PATH"
+          git commit -m "Update THE CITY links JSON [auto]" || echo "⚠️ Nothing to commit"
+          git push
+
+      - name: Done
+        run: echo "🎉 The City links JSON updated successfully (if changes were made)"
