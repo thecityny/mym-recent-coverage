@@ -41,10 +41,14 @@ const getTheCityLinks = async (outputPath = "the-city-links.js") => {
 
     testValidCoverageLinks(links, "THE CITY");
 
-    fs.writeFile(outputPath, links, (err) => {
-      // In case of a error throw err.
-      if (err) throw err;
-    });
+    fs.writeFile(
+      "the-city-links.json",
+      JSON.stringify(links, null, 2),
+      (err) => {
+        // In case of a error throw err.
+        if (err) throw err;
+      }
+    );
 
     console.log(`✅ Successfully wrote ${links.length} links to ${outputPath}`);
   } catch (err) {
