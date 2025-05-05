@@ -8,72 +8,74 @@ on:
   workflow_dispatch:
 
 jobs:
-  scrape-content:
+  scrape-links:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: "3.x"
-
-      - name: Install required packages
+      - name: Fetch and write TheCity links to JSON
         run: |
-          python -m pip install --upgrade pip
-          pip install requests beautifulsoup4
+          set -e
 
-      - name: Scrape and validate content
-        run: |
-          import requests
-          from bs4 import BeautifulSoup
-          import json
-          import os
+          THECITY_URL="https://www.thecity.nyc/category/campaign-2025/"
+          OUTPUT_PATH="the-city-links.json"
 
-          # Scrape the webpage
-          url = "https://www.thecity.nyc/category/campaign-2025/"
-          response = requests.get(url)
-          soup = BeautifulSoup(response.text, 'html.parser')
+          echo "📡 Fetching data from TheCity website..."
 
-          # Find the first three ".entry-title" classes with child <a> tags
-          links = []
-          for entry in soup.find_all(class_="entry-title", limit=3):
-              a_tag = entry.find('a')
-              if a_tag:
-                  text = a_tag.get_text(strip=True)
-                  href = a_tag.get('href', '').strip()
-                  if len(text) >= 5 and len(href) >= 5:
-                      links.append({'text': text, 'href': href})
+          # Fetch the raw HTML response
+          RESPONSE=$(curl -s "$THECITY_URL")
 
-          # Check that we have exactly three valid entries
-          if len(links) == 3:
-              # Save as a JSON file
-              file_path = 'the-city-links.json'
-              with open(file_path, 'w') as f:
-                  json.dump(links, f, indent=4)
+          # Log the raw response for debugging
+          echo "Raw HTML Response: $RESPONSE"
 
-              # Check if the file was modified and commit changes
-              if os.path.exists(file_path):
-                  # Check if file content changed (by comparing current file vs saved version in the repo)
-                  with open(file_path, 'r') as f:
-                      content = f.read().strip()
+          # Parse the response using Node.js (cheerio)
+          LINKS=$(node -e "
+          const cheerio = require('cheerio');
+          const response = \`$RESPONSE\`;
 
-                  # Compare with previous commit content
-                  if content != json.dumps(links, indent=4).strip():
-                      os.system(f'git add {file_path}')
-                      os.system(f'git commit -m "Update the-city-links.json"')
-                      os.system('git push')
-          else:
-              print("Error: There are not exactly 3 valid links with a minimum length of 5 characters.")
-              exit(1) # Exit with an error if the condition is not met
+          const $ = cheerio.load(response);
+          const links = [];
 
-      - name: Commit and push if there are changes
-        uses: EndBug/add-and-commit@v7
-        with:
-          author_name: "github-actions"
-          author_email: "github-actions@github.com"
-          message: "Update the-city-links.json"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          $('.entry-title a').each((index, element) => {
+            if (index < 3) {
+              const text = $(element).text().trim();
+              const href = $(element).attr('href').trim();
+              if (text.length >= 5 && href.length >= 5) {
+                links.push({ text, href });
+              }
+            }
+          });
+
+          if (links.length !== 3) {
+            console.log('❌ Expected exactly 3 links, but got', links.length);
+            process.exit(1);
+          }
+
+          console.log(JSON.stringify(links, null, 4));
+          ")
+
+          # Check if links have been successfully parsed and validate
+          if [ -z "$LINKS" ]; then
+            echo "❌ Failed to parse any links"
+            exit 1
+          fi
+
+          # Only write/commit if content changed
+          if [ -f "$OUTPUT_PATH" ] && diff <(echo "$LINKS") "$OUTPUT_PATH" > /dev/null; then
+            echo "✅ No changes to write"
+            exit 0
+          fi
+
+          echo "$LINKS" > "$OUTPUT_PATH"
+          echo "✅ Wrote new links to $OUTPUT_PATH"
+
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add "$OUTPUT_PATH"
+          git commit -m "Update TheCity links JSON [auto]" || echo "⚠️ Nothing to commit"
+          git push
+
+      - name: Done
+        run: echo "🎉 The City links JSON updated successfully"
