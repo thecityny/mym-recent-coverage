@@ -1,4 +1,4 @@
-name: Scrape and Format THE CITY Articles
+name: Scrape and Format THE CITY Links
 
 on:
   schedule:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  fetch-and-test:
+  fetch-links:
     runs-on: ubuntu-latest
 
     steps:
@@ -30,11 +30,14 @@ jobs:
         if: success()
         run: |
           if git diff --quiet ./the-city-links.json; then
-            echo "No changes to commit.";
+            echo "⚠️ Nothing to commit";
           else
             git config --global user.name "github-actions[bot]"
             git config --global user.email "github-actions[bot]@users.noreply.github.com"
             git add the-city-links.json
-            git commit -m "Update THE CITY's list of recent coverage articles"
+            git commit -m "Update Gothamist links JSON [auto]"
             git push
           fi
+
+      - name: Done
+        run: echo "🎉 THE CITY links JSON updated successfully"
