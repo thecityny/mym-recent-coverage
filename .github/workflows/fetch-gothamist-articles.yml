@@ -36,16 +36,16 @@ jobs:
             exit 1
           fi
 
-          # Parse the response (accessing data.items)
-          ITEMS=$(echo "$RESPONSE" | jq -r '.data.items')
+          # Parse the response (accessing items)
+          ITEMS=$(echo "$RESPONSE" | jq -r '.items')
 
           if [ "$ITEMS" = "null" ]; then
-            echo "❌ API response does not contain a 'data.items' array"
+            echo "❌ API response does not contain a '.items' array"
             exit 1
           fi
 
           # Convert to array of {text, href}
-          LINKS=$(echo "$RESPONSE" | jq '[.data.items[] | {text: .title, href: .url}]')
+          LINKS=$(echo "$RESPONSE" | jq '[.items[] | {text: .title, href: .url}]')
 
           # Validate: Exactly 3 links
           COUNT=$(echo "$LINKS" | jq 'length')
