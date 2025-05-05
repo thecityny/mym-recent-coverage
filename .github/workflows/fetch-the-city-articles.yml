@@ -32,7 +32,7 @@ jobs:
           node <<'EOF'
           import { readFileSync } from 'fs';
 
-          const contents = readFileSync('the-city-links.js', 'utf8');
+          const contents = readFileSync('./the-city-links.js', 'utf8');
           const arrayMatch = contents.match(/export const coverageLinksTheCity = (\[.*\]);/s);
 
           if (!arrayMatch) {
