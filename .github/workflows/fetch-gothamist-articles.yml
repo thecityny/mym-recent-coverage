@@ -1,0 +1,69 @@
+name: Fetch and Update Gothamist Links
+
+on:
+  schedule:
+    - cron: "0 11 * * *" # 7am NYC
+    - cron: "0 17 * * *" # 1pm NYC
+    - cron: "0 23 * * *" # 7pm NYC
+  workflow_dispatch:
+
+jobs:
+  fetch-links:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Fetch and write Gothamist links to JSON
+        run: |
+          set -e
+
+          GOTHAMIST_API_URL="https://api-prod.gothamist.com/api/v2/pages/?type=news.ArticlePage&fields=listing_title,url&order=-publication_date&show_on_index_listing=true&limit=3&tag_slug=politics"
+          OUTPUT_PATH="gothamist-links.json"
+
+          echo "📡 Fetching data from API..."
+          RESPONSE=$(curl -s "$GOTHAMIST_API_URL")
+          ITEMS=$(echo "$RESPONSE" | jq -r '.items')
+
+          if [ "$ITEMS" = "null" ]; then
+            echo "❌ API response does not contain an items array"
+            exit 1
+          fi
+
+          # Convert to array of {text, href}
+          LINKS=$(echo "$RESPONSE" | jq '[.items[] | {text: .listing_title, href: .url}]')
+
+          # Validate: Exactly 3 links
+          COUNT=$(echo "$LINKS" | jq 'length')
+          if [ "$COUNT" -ne 3 ]; then
+            echo "❌ Expected exactly 3 links, but got $COUNT"
+            exit 1
+          fi
+
+          # Validate: text and href minimum length
+          for field in text href; do
+            SHORT_COUNT=$(echo "$LINKS" | jq "[.[] | select(.$field | length < 5)] | length")
+            if [ "$SHORT_COUNT" -gt 0 ]; then
+              echo "❌ One or more '$field' values are too short"
+              exit 1
+            fi
+          done
+
+          # Only write/commit if content changed
+          if [ -f "$OUTPUT_PATH" ] && diff <(echo "$LINKS") "$OUTPUT_PATH" > /dev/null; then
+            echo "✅ No changes to write"
+            exit 0
+          fi
+
+          echo "$LINKS" > "$OUTPUT_PATH"
+          echo "✅ Wrote new links to $OUTPUT_PATH"
+
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add "$OUTPUT_PATH"
+          git commit -m "Update Gothamist links JSON [auto]" || echo "⚠️ Nothing to commit"
+          git push
+
+      - name: Done
+        run: echo "🎉 Gothamist links JSON updated successfully"
