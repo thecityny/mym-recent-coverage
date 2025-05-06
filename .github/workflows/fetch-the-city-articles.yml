@@ -35,7 +35,7 @@ jobs:
             git config --global user.name "github-actions[bot]"
             git config --global user.email "github-actions[bot]@users.noreply.github.com"
             git add the-city-links.json
-            git commit -m "Update Gothamist links JSON [auto]"
+            git commit -m "Update THE CITY links JSON [auto]"
             git push
           fi
 
