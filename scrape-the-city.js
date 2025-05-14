@@ -32,10 +32,13 @@ const getTheCityLinks = async (outputPath = "./the-city-links.js") => {
 
     let links = [];
     $(".entry-title a").each((i, elem) => {
-      if (i < 3) {
+      if (links.length < 3) {
         const text = $(elem).text().trim();
         const href = $(elem).attr("href");
-        links.push({ text, href });
+        // Make sure not to add Meet Your Mayor as a recent article:
+        if (text !== "Meet Your Mayor 2025") {
+          links.push({ text, href });
+        }
       }
     });
 
