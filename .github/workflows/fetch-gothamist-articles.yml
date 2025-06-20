@@ -26,7 +26,7 @@ jobs:
           echo "📡 Fetching data from API..."
 
           # Fetch the raw response
-          RESPONSE=$(curl -s "User-Agent: ${{ secrets.USER_AGENT }}" "$GOTHAMIST_API_URL")
+          RESPONSE=$(curl -H "User-Agent: ${{ secrets.USER_AGENT }}" "$GOTHAMIST_API_URL")
 
           # Log the raw response for debugging
           echo "Raw API Response: $RESPONSE"
